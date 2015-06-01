@@ -8,7 +8,7 @@
 #include "constants.h"
 #include "mpi.h"
 
-#include "compute_unfolded_freeenergy.h"
+#include "potential_unfolded_freeenergy.h"
 #include "domain.h"
 #include "symmetry_generator.h"
 #include "function_meanfieldenergy_lattice.h"
@@ -139,13 +139,13 @@ void Design(Vergil* vergil) {
   //Compute and time the reference energy
   timer.Stamp();
   Log->print("Computing reference energies....");
-  ComputeUnfoldedFreeEnergy unfolded_compute(ComputeUnfoldedFreeEnergy::AMBER_KONO,
+  PotentialUnfoldedFreeEnergy unfolded_compute(PotentialUnfoldedFreeEnergy::AMBER_KONO,
                                              vergil->forcefield_parameter_library(), vergil->topology_library(),
                                              vergil->conformer_library());
   unfolded_compute.set_beta(ref_beta);
-  unfolded_compute.AddCompute(vergil->compute("dihedral"));
-  unfolded_compute.AddCompute(vergil->compute("vanderwaals"));
-  unfolded_compute.AddCompute(vergil->compute("electrostatic"));
+  unfolded_compute.AddPotential(vergil->potential("dihedral"));
+  unfolded_compute.AddPotential(vergil->potential("vanderwaals"));
+  unfolded_compute.AddPotential(vergil->potential("electrostatic"));
   unfolded_compute.GenerateUnfoldedFreeEnergies();
   Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
@@ -214,9 +214,9 @@ void Design(Vergil* vergil) {
     Log->print("Setting up energy function...");
     FunctionMeanFieldEnergyLattice energy(vergil->domain(), symmetry_related_elements);
     energy.set_pairwise_energy_cap_values(twobody_energy_cap, twobody_energy_cap);
-    energy.AddCompute(vergil->compute("dihedral"));
-    energy.AddCompute(vergil->compute("vanderwaals"));
-    energy.AddCompute(vergil->compute("electrostatic"));
+    energy.AddPotential(vergil->potential("dihedral"));
+    energy.AddPotential(vergil->potential("vanderwaals"));
+    energy.AddPotential(vergil->potential("electrostatic"));
     energy.ComputeEnergies();
     Log->print_tag("RUNTIME", "Energy Matrix Fill Time: " + timer.ElapsedToString());
 
