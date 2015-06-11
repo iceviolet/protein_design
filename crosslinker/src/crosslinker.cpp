@@ -66,13 +66,13 @@ int main(int argc, char **argv) {
 }
 
 void Design(Vergil *vergil) {
-  std::string input_directory = "/Users/Violet/data/peptide_design/tetramer_29/fullseq_design_approved_by_Jeff";
+  std::string input_directory = "/home/hzhang/peptide_design/tetramer_29/fullseq_design_approved_by_Jeff";
   std::string pdb_filename = input_directory + "/C4459a_chainA_fixed_adg_NH2cap_for_vergil.pdb";
-  std::string uaa_filename = "/Users/Violet/data/cross_linkers/geometry/PDBeChem/uaa_template.pdb";
-  std::string uaa_param = "/Users/Violet/data/cross_linkers/toppar/par_uaa.inp";
-  std::string uaa_top = "/Users/Violet/data/cross_linkers/toppar/top_uaa.inp";
-  std::string uaa_rot_dir = "/Users/Violet/data/cross_linkers/parameterization_tools/SwissSideChain/rotamer_lib";
-  std::string output_fileprefix = "/Users/Violet/data/cross_linkers/test";
+  std::string uaa_filename = "/home/hzhang/cross_linkers/geometry/PDBeChem/uaa_template.pdb";
+  std::string uaa_param = "/home/hzhang/cross_linkers/toppar/par_uaa.inp";
+  std::string uaa_top = "/home/hzhang/cross_linkers/toppar/top_uaa.inp";
+  std::string uaa_rot_dir = "/home/hzhang/cross_linkers/parameterization_tools/SwissSideChain/rotamer_lib";
+  std::string output_fileprefix = "/home/hzhang/cross_linkers/test_rot81";
 
   Timer timer;
 
@@ -90,7 +90,7 @@ void Design(Vergil *vergil) {
   Log->print_tag("INPUT", "uaa PBD template -- " + uaa_filename);
 
   //Load rotamer libraries
-  unsigned int max_dunbrack_rots = 2;
+  unsigned int max_dunbrack_rots = 81;
   vergil->LoadDunbrackRotamerLibrary(2010, max_dunbrack_rots);
   InputDunbrack input_lvg_rot(vergil->conformer_library(), max_dunbrack_rots);
   input_lvg_rot.Read(uaa_rot_dir + "/LVG_bbdep_Gfeller.lib");
@@ -110,7 +110,8 @@ void Design(Vergil *vergil) {
   Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
   // Load scaffold
-  std::string scaffold = "backbone or site 1 4 7 8 11 14 15 18 21 22 25 28 29";
+  //std::string scaffold = "backbone or site 1 4 7 8 11 14 15 18 21 22 25 28 29";
+  std::string scaffold = "backbone";
   InputPDBScaffold input(vergil->domain(), scaffold);
   input.KeepSitesWithMissingAtoms();
   input.Read(pdb_filename);
@@ -121,7 +122,7 @@ void Design(Vergil *vergil) {
   int num_amino_acids = 20;
   std::string amino_acid_set[] = { "ALA", "ARG", "ASN", "ASP", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET",
       "PHE", "SER", "THR", "TRP", "TYR", "VAL", "LVG", "CYS" };
-  std::string typelist[] = { "ASP", "LEU", "MET", "ALA", "ILE", "MET", "ALA", "ILE", "MET", "ALA", "ILE", "GLU", "ALA" };
+  std::string typelist[] = { "ASP", "ILE", "MET", "ALA", "ILE", "MET", "ALA", "ILE", "MET", "ALA", "ILE", "GLU", "ALA" };
   size_t i = 0;
   for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End();
       ++it) {
