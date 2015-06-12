@@ -72,7 +72,7 @@ void Design(Vergil *vergil) {
   std::string uaa_param = "/home/hzhang/cross_linkers/toppar/par_uaa.inp";
   std::string uaa_top = "/home/hzhang/cross_linkers/toppar/top_uaa.inp";
   std::string uaa_rot_dir = "/home/hzhang/cross_linkers/parameterization_tools/SwissSideChain/rotamer_lib";
-  std::string output_fileprefix = "/home/hzhang/cross_linkers/test_rot81";
+  std::string output_fileprefix = "/home/hzhang/cross_linkers/P622_CYS_LVG";
 
   Timer timer;
 
@@ -109,91 +109,106 @@ void Design(Vergil *vergil) {
   unfolded_compute.GenerateUnfoldedFreeEnergies();
   Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  // Load scaffold
-  //std::string scaffold = "backbone or site 1 4 7 8 11 14 15 18 21 22 25 28 29";
-  std::string scaffold = "backbone";
-  InputPDBScaffold input(vergil->domain(), scaffold);
-  input.KeepSitesWithMissingAtoms();
-  input.Read(pdb_filename);
-  Log->print_tag("INPUT", "PDB scaffold -- " + pdb_filename);
+  std::string outfile_energy = output_fileprefix + "_a36.2to40.3.csv";
+  FILE* outfile = fopen(outfile_energy.c_str(), "w");
+  fprintf(outfile, "UnitCell_length_a(b)(nm), Internal_energy(Kcal/mol)\n");
+  fclose(outfile);
 
-  // Type each site in the domain
-  // todo: check fixed site 4, why cannot type it to Leu
-  int num_amino_acids = 20;
-  std::string amino_acid_set[] = { "ALA", "ARG", "ASN", "ASP", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET",
-      "PHE", "SER", "THR", "TRP", "TYR", "VAL", "LVG", "CYS" };
-  std::string typelist[] = { "ASP", "ILE", "MET", "ALA", "ILE", "MET", "ALA", "ILE", "MET", "ALA", "ILE", "GLU", "ALA" };
-  size_t i = 0;
-  for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End();
-      ++it) {
-    size_t heptad_id = it->name() % 7;
-    if (heptad_id == 1 || heptad_id == 4 || heptad_id == 0) {
-      it->Add(typelist[i]);
-      if (it->name() == 29) {
-        // Cap the C term
-        TopologyMonomer* monomer = vergil->topology_library()->FindMonomer("ALA");
-        monomer->set_last_default_patch("CT2");
+  // Loop through the unit cell length (boundary from previous energy landscape scan of backbone structure)
+  for (double unit_cell_len = 36.2; unit_cell_len < 40.3; ++unit_cell_len) {
+    double trim_cap = 30.0;
+    double twobody_energy_cap = 30.0;
+    double design_beta = 0.5;
+
+    // Load scaffold
+    //std::string scaffold = "backbone or site 1 4 7 8 11 14 15 18 21 22 25 28 29";
+    std::string scaffold = "backbone";
+    InputPDBScaffold input(vergil->domain(), scaffold);
+    input.KeepSitesWithMissingAtoms();
+    input.Read(pdb_filename);
+    Log->print_tag("INPUT", "PDB scaffold -- " + pdb_filename);
+
+    // Type each site in the domain
+    int num_amino_acids = 20;
+    std::string amino_acid_set[] = { "ALA", "ARG", "ASN", "ASP", "GLN", "GLU", "GLY", "HIS", "ILE", "LEU", "LYS", "MET",
+        "PHE", "SER", "THR", "TRP", "TYR", "VAL", "LVG", "CYS" };
+    for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End();
+        ++it) {
+      size_t heptad_id = it->name() % 7;
+      if (heptad_id == 1 || heptad_id == 4 || heptad_id == 0) {
+        it->Add(it->reference_type()->name());
+        if (it->name() == 29) {
+          // Cap the C term
+          TopologyMonomer* monomer = vergil->topology_library()->FindMonomer("ALA");
+          monomer->set_last_default_patch("CT2");
+        }
+      } else {
+        for (int j = 0; j < num_amino_acids; ++j)
+          it->Add(amino_acid_set[j]);
       }
-      ++i;
-    } else {
-      for (int j = 0; j < num_amino_acids; ++j)
-        it->Add(amino_acid_set[j]);
     }
+
+    // Build all conformers
+    vergil->BuildDomain();
+    vergil->TrimDomain(trim_cap);
+
+    //Offset the domain(ASU) to the correct position in the unit cell
+    const Vector3 offset(unit_cell_len / 2, 0, 0);
+    vergil->domain()->TransformBy(Geometry::Transformation(Vector3(0, 0, 0), 0.0, offset));
+
+    //Set up symmetry and build lattice
+    vergil->domain()->set_unit_cell_parameters("P622", unit_cell_len, unit_cell_len, 1000, 90.0, 90.0, 120.0);
+    SymmetryGenerator<Domain> symexp("P622", unit_cell_len, unit_cell_len, 1000, 90.0, 90.0, 120.0);
+    symexp.BuildLattice(*vergil->domain(), -1, -1, 0, 1, 1, 0);
+    std::vector<Domain>* symmetry_related_elements = symexp.lattice();
+
+    //Trim rotamers that clash with the scaffold
+    vergil->TrimDomain(trim_cap, symmetry_related_elements);
+
+    // Set up energy function
+    timer.Stamp();
+    Log->print("Setting up energy function...");
+    FunctionMeanFieldEnergyLattice energy(vergil->domain(), symmetry_related_elements);
+    energy.set_pairwise_energy_cap_values(twobody_energy_cap, twobody_energy_cap);
+    energy.AddPotential(vergil->potential("dihedral"));
+    energy.AddPotential(vergil->potential("vanderwaals"));
+    energy.AddPotential(vergil->potential("electrostatic"));
+    energy.ComputeEnergies();
+    Log->print_tag("RUNTIME", "Energy Matrix Fill Time: " + timer.ElapsedToString());
+
+    // Initialize probabilities
+    vergil->domain()->SetUniformConformerProbabilities();
+
+    // Set up the problem
+    FunctionFreeEnergyWithReference free_energy(&energy, design_beta, &unfolded_compute);
+    vergil->InitProbabilityProblem(free_energy);
+
+    //Todo: Set up composition constraints from the problem class
+
+    //solve the unconstrained problem
+    vergil->SolveProbabilityProblem();
+
+    //Output Energy
+    VectorN prob = vergil->ConformerProbabilityVector();
+    double meanfield_energy = free_energy.internal_energy()->Value(prob);
+    FILE* outfile = fopen(outfile_energy.c_str(), "a");
+    fprintf(outfile, "%10.5f, %10.5f\n", unit_cell_len/10, meanfield_energy);
+    fclose(outfile);
+
+    //Output standard files (pdb, psf, seq, csv)
+    vergil->StandardOutput(output_fileprefix);
+
+    for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End();
+        ++it) {
+      it->SetAggregatedTypeProbability();
+    }
+    vergil->RenameSymmetrySegname(symmetry_related_elements);
+    OutputPDB output1(output_fileprefix + "_lattice.pdb", vergil->domain());
+    output1.WriteLattice(symmetry_related_elements);
+    Log->print("Most Probable PDB -- " + output_fileprefix + "_lattice.pdb");
+
+    vergil->domain()->Clear();
   }
-
-  // Build all conformers
-  vergil->BuildDomain();
-  vergil->TrimDomain(30.0);
-
-  //Offset the domain(ASU) to the correct position in the unit cell
-  const Vector3 offset(45/2, 0, 0);
-  vergil->domain()->TransformBy(Geometry::Transformation(Vector3(0, 0, 0), 0.0, offset));
-
-  //Set up symmetry and build lattice
-  vergil->domain()->set_unit_cell_parameters("P622", 45, 45, 1000, 90.0, 90.0, 120.0);
-  SymmetryGenerator<Domain> symexp("P622", 45, 45, 1000, 90.0, 90.0, 120.0);
-  symexp.BuildLattice(*vergil->domain(), -1, -1, 0, 1, 1, 0);
-  std::vector<Domain>* symmetry_related_elements = symexp.lattice();
-
-  //Trim rotamers that clash with the scaffold
-  vergil->TrimDomain(30.0, symmetry_related_elements);
-
-  // Set up energy function
-  timer.Stamp();
-  Log->print("Setting up energy function...");
-  FunctionMeanFieldEnergyLattice energy(vergil->domain(), symmetry_related_elements);
-  energy.set_pairwise_energy_cap_values(30, 30);
-  energy.AddPotential(vergil->potential("dihedral"));
-  energy.AddPotential(vergil->potential("vanderwaals"));
-  energy.AddPotential(vergil->potential("electrostatic"));
-  energy.ComputeEnergies();
-  Log->print_tag("RUNTIME", "Energy Matrix Fill Time: " + timer.ElapsedToString());
-
-  // Initialize probabilities
-  vergil->domain()->SetUniformConformerProbabilities();
-
-  // Set up the problem
-  FunctionFreeEnergyWithReference free_energy(&energy, 0.5, &unfolded_compute);
-  vergil->InitProbabilityProblem(free_energy);
-
-  //Todo: Set up composition constraints from the problem class
-
-  //solve the unconstrained problem
-  vergil->SolveProbabilityProblem();
-
-  //Output standard files (pdb, psf, seq, csv)
-  vergil->StandardOutput(output_fileprefix);
-
-  for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End();
-      ++it) {
-    it->SetAggregatedTypeProbability();
-  }
-  vergil->RenameSymmetrySegname(symmetry_related_elements);
-  OutputPDB output1(output_fileprefix + "_lattice.pdb", vergil->domain());
-  output1.WriteLattice(symmetry_related_elements);
-  Log->print("Most Probable PDB -- " + output_fileprefix + "_lattice.pdb");
-
-  vergil->domain()->Clear();
 }
 
 void Test(Vergil* vergil) {
