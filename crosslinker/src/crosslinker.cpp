@@ -109,13 +109,13 @@ void Design(Vergil *vergil) {
   unfolded_compute.GenerateUnfoldedFreeEnergies();
   Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  std::string outfile_energy = output_fileprefix + "_GLY.csv";
+  std::string outfile_energy = output_fileprefix + "_a3.98to4.60.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
   fprintf(outfile, "UnitCell_length_a(b)(nm), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
 
   // Loop through the unit cell length (boundary from previous energy landscape scan of backbone structure)
-  for (double unit_cell_len = 36.2; unit_cell_len < 40.3; unit_cell_len += 0.1) {
+  for (double unit_cell_len = 39.8; unit_cell_len < 46.1; unit_cell_len += 0.1) {
     double trim_cap = 30.0;
     double twobody_energy_cap = 30.0;
     double design_beta = 0.5;
@@ -144,8 +144,8 @@ void Design(Vergil *vergil) {
         }
       } else {
         for (int j = 0; j < num_amino_acids; ++j)
-          //it->Add(amino_acid_set[j]);
-          it->Add("GLY");
+          it->Add(amino_acid_set[j]);
+        //it->Add("GLY");
       }
     }
 
@@ -197,16 +197,16 @@ void Design(Vergil *vergil) {
     fclose(outfile);
 
     //Output standard files (pdb, psf, seq, csv)
-//    vergil->StandardOutput(output_fileprefix);
-//
-//    for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End();
-//        ++it) {
-//      it->SetAggregatedTypeProbability();
-//    }
-//    vergil->RenameSymmetrySegname(symmetry_related_elements);
-//    OutputPDB output1(output_fileprefix + "_lattice.pdb", vergil->domain());
-//    output1.WriteLattice(symmetry_related_elements);
-//    Log->print("Most Probable PDB -- " + output_fileprefix + "_lattice.pdb");
+    vergil->StandardOutput(output_fileprefix + "_a" + Log->to_str(unit_cell_len/10));
+
+    for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End();
+        ++it) {
+      it->SetAggregatedTypeProbability();
+    }
+    vergil->RenameSymmetrySegname(symmetry_related_elements);
+    OutputPDB output1(output_fileprefix + "_lattice_a" + Log->to_str(unit_cell_len/10) + ".pdb", vergil->domain());
+    output1.WriteLattice(symmetry_related_elements);
+    Log->print("Most Probable PDB -- " + output_fileprefix + "_lattice.pdb");
 
     vergil->domain()->Clear();
   }
