@@ -29,7 +29,11 @@ find_package (IPOPT)
 
 # Set include directory and shared library object
 set (VERGIL_INCLUDE_DIRS ${VERGIL_DIR}/include)
-find_library (VERGIL_LIBRARIES libvergil.a ${VERGIL_DIR}/lib)
+if(APPLE)
+	find_library (VERGIL_LIBRARIES libvergil.dylib ${VERGIL_DIR}/lib)
+ELSEIF(UNIX)
+	find_library (VERGIL_LIBRARIES libvergil.so ${VERGIL_DIR}/lib)
+ENDIF()
 
 # Set linking flags
 set (LINK_FLAGS "-O -g")
