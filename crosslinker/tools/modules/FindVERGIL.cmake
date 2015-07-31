@@ -29,17 +29,17 @@ find_package (IPOPT)
 
 # Set include directory and shared library object
 set (VERGIL_INCLUDE_DIRS ${VERGIL_DIR}/include)
-if(APPLE)
-	find_library (VERGIL_LIBRARIES libvergil.dylib ${VERGIL_DIR}/lib)
-ELSEIF(UNIX)
-	find_library (VERGIL_LIBRARIES libvergil.so ${VERGIL_DIR}/lib)
-ENDIF()
+find_library (VERGIL_LIBRARIES libvergil.so ${VERGIL_DIR}/lib)
 
 # Set linking flags
+set (MKLROOT "/opt/apps/intel/15/composer_xe_2015.2.164/mkl")
 set (LINK_FLAGS "-O -g")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   set (OPENMP_FLAG "-fopenmp")
   set (LINK_FLAGS "${LINK_FLAGS} -mpc64")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+  set (OPENMP_FLAG "-openmp")
+  set (LINK_FLAGS "-I${MKLROOT}/include -mkl=parallel")
 endif () 
 set (VERGIL_LINK_FLAGS "${OPENMP_FLAG} ${LINK_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 

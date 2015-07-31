@@ -45,9 +45,14 @@ void Design(Vergil* vergil);
  * @return main return
  */
 int main(int argc, char **argv) {
-
   // Initialize MPI
-  MPI_Init(&argc, &argv);
+  int provided;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+  if(provided < MPI_THREAD_FUNNELED)
+  {
+     printf("MPI cannot support funneled!\n");
+     MPI_Abort(MPI_COMM_WORLD,0);
+  }
 
   // Create a VERGIL instance, pass arguments;
   Vergil *vergil = new Vergil();
@@ -66,13 +71,15 @@ int main(int argc, char **argv) {
 }
 
 void Design(Vergil *vergil) {
-  std::string input_directory = "/home/hzhang/peptide_design/tetramer_29/fullseq_design_approved_by_Jeff";
+  std::string home = getenv("HOME");
+  std::string scratch = getenv("SCRATCH");
+  std::string input_directory = home + "/fullseq_design_approved_by_Jeff";
   std::string pdb_filename = input_directory + "/C4459a_chainA_fixed_adg_NH2cap_for_vergil.pdb";
-  std::string uaa_filename = "/home/hzhang/cross_linkers/geometry/PDBeChem/uaa_template.pdb";
-  std::string uaa_param = "/home/hzhang/cross_linkers/toppar/par_uaa.inp";
-  std::string uaa_top = "/home/hzhang/cross_linkers/toppar/top_uaa.inp";
-  std::string uaa_rot_dir = "/home/hzhang/cross_linkers/parameterization_tools/SwissSideChain/rotamer_lib";
-  std::string output_fileprefix = "/home/hzhang/cross_linkers/P622_CYS_LVG";
+  std::string uaa_filename = home + "/cross_linkers/geometry/PDBeChem/uaa_template.pdb";
+  std::string uaa_param = home + "/cross_linkers/toppar/par_uaa.inp";
+  std::string uaa_top = home + "/cross_linkers/toppar/top_uaa.inp";
+  std::string uaa_rot_dir = home + "/cross_linkers/parameterization_tools/SwissSideChain/rotamer_lib";
+  std::string output_fileprefix = scratch + "/cross_linkers/P622_CYS_LVG";
 
   Timer timer;
 
@@ -109,13 +116,13 @@ void Design(Vergil *vergil) {
   unfolded_compute.GenerateUnfoldedFreeEnergies();
   Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  std::string outfile_energy = output_fileprefix + "_a3.98to4.60.csv";
+  std::string outfile_energy = output_fileprefix + "_a4.51to5.51.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
   fprintf(outfile, "UnitCell_length_a(b)(nm), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
 
   // Loop through the unit cell length (boundary from previous energy landscape scan of backbone structure)
-  for (double unit_cell_len = 39.8; unit_cell_len < 46.1; unit_cell_len += 0.1) {
+  for (double unit_cell_len = 45.1; unit_cell_len < 55.1; unit_cell_len += 0.1) {
     double trim_cap = 30.0;
     double twobody_energy_cap = 30.0;
     double design_beta = 0.5;
