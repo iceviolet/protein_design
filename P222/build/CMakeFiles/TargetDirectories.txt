@@ -1,0 +1,3 @@
+/Users/Violet/data/peptide_design/design_src/P222/build/CMakeFiles/P222.dir
+/Users/Violet/data/peptide_design/design_src/P222/build/CMakeFiles/clean-all.dir
+/Users/Violet/data/peptide_design/design_src/P222/build/CMakeFiles/run_P222.dir
