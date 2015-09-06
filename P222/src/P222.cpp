@@ -86,7 +86,7 @@ void Design(Vergil* vergil) {
 	//Load force field and design topology
 	vergil->LoadAMBERUnitedAtom();
 	vergil->LoadSavenDesignStandards();
-	unsigned int max_dunbrack_rots = 1;
+	unsigned int max_dunbrack_rots = 81;
 	vergil->LoadDunbrackRotamerLibrary(2002, max_dunbrack_rots);
 
 	//Compute and time the reference energy
@@ -113,6 +113,7 @@ void Design(Vergil* vergil) {
   double a = 27.4;
   double c = 33.7;
 		  for (double beta = 51; beta < 91; ++beta) {
+		    for (double theta = 5; theta < 180; theta += 5) {
         // Load scaffold
         std::string scaffold ="protein and backbone";
 
@@ -143,6 +144,9 @@ void Design(Vergil* vergil) {
         //rotate ASU around x axis by 90 degree
         const Matrix m = Geometry::Transformation(Vector3(1, 0, 0), 90 * DEGREES_TO_RADIANS);
         vergil->domain()->TransformBy(m);
+        //rotate ASU around y axis by theta degree
+        const Matrix m_y = Geometry::Transformation(Vector3(0, 1, 0), theta * DEGREES_TO_RADIANS);
+        vergil->domain()->TransformBy(m_y);
 
         //Set up symmetry and build lattice
         vergil->domain()->set_unit_cell_parameters("P2", a, 1000, c, 90.0, beta, 90.0);
@@ -192,6 +196,7 @@ void Design(Vergil* vergil) {
         Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");
 
         vergil->domain()->Clear();
+		    }
 		  }
 		//}
 	//}
