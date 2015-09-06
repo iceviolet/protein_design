@@ -103,9 +103,9 @@ void Design(Vergil* vergil) {
 	unfolded_compute.GenerateUnfoldedFreeEnergies();
 	Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  std::string outfile_energy = output_fileprefix + "_a2.74_c3.37_beta51to90.csv";
+  std::string outfile_energy = output_fileprefix + "_a2.74_c3.37_beta51to90_theta5to175.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
-  fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_a(nm), beta(deg), Internal_energy(Kcal/mol)\n");
+  fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_a(nm), beta(deg), theta(deg), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
 
 	//for (double a = 24.7; a < 30.2; a += 0.1) {
@@ -180,11 +180,11 @@ void Design(Vergil* vergil) {
         VectorN prob = vergil->ConformerProbabilityVector();
         double meanfield_energy = free_energy.internal_energy()->Value(prob);
         FILE* outfile = fopen(outfile_energy.c_str(), "a");
-        fprintf(outfile, "%10.5f, %10.5f, %10.5f, %10.5f\n", a/10, c/10, beta, meanfield_energy);
+        fprintf(outfile, "%10.5f, %10.5f, %10.5f, %10.5f, %10.5f\n", a/10, c/10, beta, theta, meanfield_energy);
         fclose(outfile);
 
         //Output standard files (pdb, psf, seq, csv)
-        std::string output_file = output_directory + "/C4459_P2_9_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_mp_type_wCap";
+        std::string output_file = output_directory + "/C4459_P2_9_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) + "_theta" + Log->to_str(theta) + "_mp_type_wCap";
         vergil->StandardOutput(output_file);
 
         for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
