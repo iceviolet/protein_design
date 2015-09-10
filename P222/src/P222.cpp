@@ -103,9 +103,9 @@ void Design(Vergil* vergil) {
 	unfolded_compute.GenerateUnfoldedFreeEnergies();
 	Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  std::string outfile_energy = output_fileprefix + "_bundle_a2.74_c3.37_beta75to105_theta5to175.csv";
+  std::string outfile_energy = output_fileprefix + "_bundle_a2.74_c3.37_beta75to105_theta5to175_d8to13.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
-  fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_a(nm), beta(deg), theta(deg), Internal_energy(Kcal/mol)\n");
+  fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
 
 	//for (double a = 24.7; a < 30.2; a += 0.1) {
@@ -114,88 +114,94 @@ void Design(Vergil* vergil) {
   double c = 33.7;
 		  for (double beta = 75; beta < 106; ++beta) {
 		    for (double theta = 5; theta < 180; theta += 5) {
-        // Load scaffold
-        std::string scaffold ="protein and backbone";
+		      for (double d = 8; d < 13; ++d) {
+          // Load scaffold
+          std::string scaffold ="protein and backbone";
 
-        InputPDBScaffold input(vergil->domain(), scaffold);
-        input.KeepSitesWithMissingAtoms();
-        input.Read(pdb_filename);
-        Log->print_tag("INPUT", "PDB scaffold -- " + pdb_filename);
+          InputPDBScaffold input(vergil->domain(), scaffold);
+          input.KeepSitesWithMissingAtoms();
+          input.Read(pdb_filename);
+          Log->print_tag("INPUT", "PDB scaffold -- " + pdb_filename);
 
-        //Type each site in the domain using the original P222_9 sequence
-        std::string typelist[] = { "ASP", "GLY", "ARG", "ILE", "GLU", "GLY", "MET", "ALA", "GLU", "ALA", "ILE", "LYS", "LYS",
-            "MET", "ALA", "TYR", "ASN", "ILE", "ALA", "ASP", "MET", "ALA", "GLY", "ARG", "ILE", "TRP", "GLY", "GLU", "ALA",
-            "NH2" };
+          //Type each site in the domain using the original P222_9 sequence
+          std::string typelist[] = { "ASP", "GLY", "ARG", "ILE", "GLU", "GLY", "MET", "ALA", "GLU", "ALA", "ILE", "LYS", "LYS",
+              "MET", "ALA", "TYR", "ASN", "ILE", "ALA", "ASP", "MET", "ALA", "GLY", "ARG", "ILE", "TRP", "GLY", "GLU", "ALA",
+              "NH2" };
 
-        for (Domain::SectionIterator jt = vergil->domain()->SectionIterator_Begin(); jt != vergil->domain()->SectionIterator_End(); ++jt) {
-          size_t i = 0;
-          for (Section::SiteIterator it = jt->SiteIterator_Begin(); it != jt->SiteIterator_End(); ++it) {
-            it->Add(typelist[i]);
-            ++i;
-            //it->Add("GLY");
+          for (Domain::SectionIterator jt = vergil->domain()->SectionIterator_Begin(); jt != vergil->domain()->SectionIterator_End(); ++jt) {
+            size_t i = 0;
+            for (Section::SiteIterator it = jt->SiteIterator_Begin(); it != jt->SiteIterator_End(); ++it) {
+              it->Add(typelist[i]);
+              ++i;
+              //it->Add("GLY");
+            }
           }
-        }
 
-        // Build all conformers
-        vergil->BuildDomain();
-        vergil->TrimDomain(30.0);
+          // Build all conformers
+          vergil->BuildDomain();
+          vergil->TrimDomain(30.0);
 
-        //move the domain(ASU) to the correct position in the unit cell
-        //rotate ASU around x axis by 90 degree
-        const Matrix m = Geometry::Transformation(Vector3(1, 0, 0), 90 * DEGREES_TO_RADIANS);
-        vergil->domain()->TransformBy(m);
-        //rotate ASU around y axis by theta degree
-        const Matrix m_y = Geometry::Transformation(Vector3(0, 1, 0), theta * DEGREES_TO_RADIANS);
-        vergil->domain()->TransformBy(m_y);
+          //move the domain(ASU) to the correct position in the unit cell
+          //rotate ASU around x axis by 90 degree
+          const Matrix m = Geometry::Transformation(Vector3(1, 0, 0), 90 * DEGREES_TO_RADIANS);
+          vergil->domain()->TransformBy(m);
+          //rotate ASU around y(b) axis by theta degree
+          const Matrix m_y = Geometry::Transformation(Vector3(0, 1, 0), theta * DEGREES_TO_RADIANS);
+          vergil->domain()->TransformBy(m_y);
+          //translate ASU by d A along the bisect of a and c in the unit cell
+          const Vector3 offset = Vector3(1 * cos(beta), sin(beta), d);
+          const Matrix m_move = Geometry::Transformation(Vector3(0, 0, 0), 0, offset);
+          vergil->domain()->TransformBy(m_move);
 
-        //Set up symmetry and build lattice
-        vergil->domain()->set_unit_cell_parameters("P2", a, 1000, c, 90.0, beta, 90.0);
-        SymmetryGenerator<Domain> symexp("P2", a, 1000, c, 90.0, beta, 90.0);
-        symexp.BuildLattice(*vergil->domain(), -1, 0, -1, 1, 0, 1);
-        std::vector<Domain>* symmetry_related_elements = symexp.lattice();
+          //Set up symmetry and build lattice
+          vergil->domain()->set_unit_cell_parameters("P2", a, 1000, c, 90.0, beta, 90.0);
+          SymmetryGenerator<Domain> symexp("P2", a, 1000, c, 90.0, beta, 90.0);
+          symexp.BuildLattice(*vergil->domain(), -1, 0, -1, 1, 0, 1);
+          std::vector<Domain>* symmetry_related_elements = symexp.lattice();
 
-        //Trim rotamers that clash with the scaffold
-        vergil->TrimDomain(30.0, symmetry_related_elements);
+          //Trim rotamers that clash with the scaffold
+          vergil->TrimDomain(30.0, symmetry_related_elements);
 
-        // Set up energy function
-        timer.Stamp();
-        Log->print("Setting up energy function...");
-        FunctionMeanFieldEnergyLattice energy(vergil->domain(), symmetry_related_elements);
-        energy.set_pairwise_energy_cap_values(twobody_energy_cap, twobody_energy_cap);
-        energy.AddPotential(vergil->potential("dihedral"));
-        energy.AddPotential(vergil->potential("vanderwaals"));
-        energy.AddPotential(vergil->potential("electrostatic"));
-        energy.ComputeEnergies();
-        Log->print_tag("RUNTIME", "Energy Matrix Fill Time: " + timer.ElapsedToString());
+          // Set up energy function
+          timer.Stamp();
+          Log->print("Setting up energy function...");
+          FunctionMeanFieldEnergyLattice energy(vergil->domain(), symmetry_related_elements);
+          energy.set_pairwise_energy_cap_values(twobody_energy_cap, twobody_energy_cap);
+          energy.AddPotential(vergil->potential("dihedral"));
+          energy.AddPotential(vergil->potential("vanderwaals"));
+          energy.AddPotential(vergil->potential("electrostatic"));
+          energy.ComputeEnergies();
+          Log->print_tag("RUNTIME", "Energy Matrix Fill Time: " + timer.ElapsedToString());
 
-        // Initialize probabilities
-        vergil->domain()->SetUniformConformerProbabilities();
+          // Initialize probabilities
+          vergil->domain()->SetUniformConformerProbabilities();
 
-        // Set up the problem and solve the unconstrained problem
-        FunctionFreeEnergyWithReference free_energy(&energy, design_beta, &unfolded_compute);
-        vergil->InitProbabilityProblem(free_energy);
-        vergil->SolveProbabilityProblem();
+          // Set up the problem and solve the unconstrained problem
+          FunctionFreeEnergyWithReference free_energy(&energy, design_beta, &unfolded_compute);
+          vergil->InitProbabilityProblem(free_energy);
+          vergil->SolveProbabilityProblem();
 
-        //Output Energy
-        VectorN prob = vergil->ConformerProbabilityVector();
-        double meanfield_energy = free_energy.internal_energy()->Value(prob);
-        FILE* outfile = fopen(outfile_energy.c_str(), "a");
-        fprintf(outfile, "%10.5f, %10.5f, %10.5f, %10.5f, %10.5f\n", a/10, c/10, beta, theta, meanfield_energy);
-        fclose(outfile);
+          //Output Energy
+          VectorN prob = vergil->ConformerProbabilityVector();
+          double meanfield_energy = free_energy.internal_energy()->Value(prob);
+          FILE* outfile = fopen(outfile_energy.c_str(), "a");
+          fprintf(outfile, "%10.5f, %10.5f, %10.5f, %10.5f, %10.5f, %10.5f\n", a/10, c/10, beta, theta, d, meanfield_energy);
+          fclose(outfile);
 
-        //Output standard files (pdb, psf, seq, csv)
-        std::string output_file = output_directory + "/C4459_P2_9_bundle_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) + "_theta" + Log->to_str(theta) + "_mp_type_wCap";
-        vergil->StandardOutput(output_file);
+          //Output standard files (pdb, psf, seq, csv)
+          std::string output_file = output_directory + "/C4459_P2_9_bundle_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) + "_theta" + Log->to_str(theta) + "_d" + Log->to_str(d) + "_mp_type_wCap";
+          vergil->StandardOutput(output_file);
 
-        for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
-          it->SetAggregatedTypeProbability();
-        }
-        vergil->RenameSymmetrySegname(symmetry_related_elements);
-        OutputPDB output1(output_file + "_lattice.pdb", vergil->domain());
-        output1.WriteLattice(symmetry_related_elements);
-        Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");
+          for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
+            it->SetAggregatedTypeProbability();
+          }
+          vergil->RenameSymmetrySegname(symmetry_related_elements);
+          OutputPDB output1(output_file + "_lattice.pdb", vergil->domain());
+          output1.WriteLattice(symmetry_related_elements);
+          Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");
 
-        vergil->domain()->Clear();
+          vergil->domain()->Clear();
+		      }
 		    }
 		  }
 		//}
