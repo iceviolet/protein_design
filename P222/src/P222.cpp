@@ -105,7 +105,7 @@ void Design(Vergil* vergil) {
 
   std::string outfile_energy = output_fileprefix + "_bundle_a2.74_c3.37_beta75to105_theta5to175_d8to13.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
-  fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), Internal_energy(Kcal/mol)\n");
+  fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), d(A), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
 
 	//for (double a = 24.7; a < 30.2; a += 0.1) {
@@ -114,7 +114,7 @@ void Design(Vergil* vergil) {
   double c = 33.7;
 		  for (double beta = 75; beta < 106; ++beta) {
 		    for (double theta = 5; theta < 180; theta += 5) {
-		      for (double d = 8; d < 13; ++d) {
+		      for (double d = 8; d < 14; ++d) {
           // Load scaffold
           std::string scaffold ="protein and backbone";
 
@@ -149,7 +149,7 @@ void Design(Vergil* vergil) {
           const Matrix m_y = Geometry::Transformation(Vector3(0, 1, 0), theta * DEGREES_TO_RADIANS);
           vergil->domain()->TransformBy(m_y);
           //translate ASU by d A along the bisect of a and c in the unit cell
-          const Vector3 offset = Vector3(1 * cos(beta), sin(beta), d);
+          const Vector3 offset = Vector3(1 * cos(beta/2), sin(beta/2), d);
           const Matrix m_move = Geometry::Transformation(Vector3(0, 0, 0), 0, offset);
           vergil->domain()->TransformBy(m_move);
 
