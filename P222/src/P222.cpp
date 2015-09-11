@@ -149,7 +149,7 @@ void Design(Vergil* vergil) {
           const Matrix m_y = Geometry::Transformation(Vector3(0, 1, 0), theta * DEGREES_TO_RADIANS);
           vergil->domain()->TransformBy(m_y);
           //translate ASU by d A along the bisect of a and c in the unit cell
-          const Vector3 offset = Vector3(1 * cos(beta/2), sin(beta/2), d);
+          const Vector3 offset = d * (Vector3(cos(beta/2), 0, sin(beta/2)));
           const Matrix m_move = Geometry::Transformation(Vector3(0, 0, 0), 0, offset);
           vergil->domain()->TransformBy(m_move);
 
