@@ -77,6 +77,8 @@ void Design(Vergil* vergil) {
 			home_dir + "/peptide_design/2D_lattice/C4459/P222/P222_9";
 	std::string pdb_filename = input_directory
 			+ "/P222_9_X0_X6_X12_X17_NH2cap.pdb";
+//	std::string pdb_filename = input_directory
+//			+ "/P222_9_X0_X12_NH2cap.pdb";
   std::string output_fileprefix = output_directory + "/C4459_P2_9";
 
 
@@ -103,18 +105,18 @@ void Design(Vergil* vergil) {
 	unfolded_compute.GenerateUnfoldedFreeEnergies();
 	Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  std::string outfile_energy = output_fileprefix + "_bundle_a2.74_c3.37_beta75to105_theta5to175_d8to13.csv";
+  std::string outfile_energy = output_fileprefix + "_bundle_a2.64to2.74_c3.27to3.47_beta96to100_theta35to50_d10.1to12.1.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
   fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), d(A), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
 
-	//for (double a = 24.7; a < 30.2; a += 0.1) {
-		//for (double c = 29.7; c < 37.1; c += 0.1) {
-  double a = 27.4;
-  double c = 33.7;
-		  for (double beta = 75; beta < 106; ++beta) {
-		    for (double theta = 5; theta < 180; theta += 5) {
-		      for (double d = 8; d < 14; ++d) {
+	for (double a = 26.4; a < 28.5; ++a) {
+		for (double c = 32.7; c < 34.8; ++c) {
+  //double a = 27.4;
+  //double c = 33.7;
+		  for (double beta = 96; beta < 101; ++beta) {
+		    for (double theta = 35; theta < 51; ++theta ) {
+		      for (double d = 10.1; d < 13.1; ++d) {
           // Load scaffold
           std::string scaffold ="protein and backbone";
 
@@ -190,7 +192,7 @@ void Design(Vergil* vergil) {
 
           //Output standard files (pdb, psf, seq, csv)
           std::string output_file = output_directory + "/C4459_P2_9_bundle_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) + "_theta" + Log->to_str(theta) + "_d" + Log->to_str(d) + "_mp_type_wCap";
-          vergil->StandardOutput(output_file);
+          //vergil->StandardOutput(output_file);
 
           for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
             it->SetAggregatedTypeProbability();
@@ -204,6 +206,6 @@ void Design(Vergil* vergil) {
 		      }
 		    }
 		  }
-		//}
-	//}
+		}
+	}
 }
