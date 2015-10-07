@@ -44,7 +44,13 @@ void Design(Vergil* vergil);
 int main(int argc, char **argv) {
 
 	// Initialize MPI
-	MPI_Init(&argc, &argv);
+        int provided;
+        MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+        if(provided < MPI_THREAD_FUNNELED)
+        {
+           printf("MPI cannot support funneled!\n");
+           MPI_Abort(MPI_COMM_WORLD,0);
+        }
 
 	// Create a VERGIL instance, pass arguments;
 	Vergil *vergil = new Vergil();
@@ -69,12 +75,12 @@ void Design(Vergil* vergil) {
 	double twobody_energy_cap = 30;
 
 	//file prefix
-	std::string home_dir = "/home/hzhang";
+	std::string home_dir = "/scratch/03048/huixi";
 	//std::string home_dir = "/Users/Violet/data";
 	std::string input_directory =
-			home_dir + "/peptide_design/tetramer_29/fullseq_design_approved_by_Jeff";
+			home_dir + "/peptide_design/fullseq_design_approved_by_Jeff";
 	std::string output_directory =
-			home_dir + "/peptide_design/2D_lattice/C4459/P222/P222_9";
+			home_dir + "/peptide_design/P2_9";
 	std::string pdb_filename = input_directory
 			+ "/P222_9_X0_X6_X12_X17_NH2cap.pdb";
 //	std::string pdb_filename = input_directory
@@ -105,19 +111,22 @@ void Design(Vergil* vergil) {
 	unfolded_compute.GenerateUnfoldedFreeEnergies();
 	Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  std::string outfile_energy = output_fileprefix + "_bundle_a2.64to2.74_c3.27to3.47_beta96to100_theta35to50_d10.1to12.1.csv";
+  std::string outfile_energy = output_fileprefix + "_bundle_a3.17_c3.25_beta78.1_theta35to50_d9.5to10.5.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
   fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), d(A), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
 
-	for (double a = 26.4; a < 28.5; ++a) {
-		for (double c = 32.7; c < 34.8; ++c) {
-  //double a = 27.4;
-  //double c = 33.7;
-		  for (double beta = 96; beta < 101; ++beta) {
+	//for (double a = 28.6; a < 29.1; a+=0.1) {
+	//	for (double c = 32.8; c < 33.9; c+=0.1) {
+  double a = 31.7;
+  double c = 32.5;
+		 // for (double beta = 95.5; beta < 97.6; beta += 0.1) {
 		    for (double theta = 35; theta < 51; ++theta ) {
-		      for (double d = 10.1; d < 13.1; ++d) {
-          // Load scaffold
+		      for (double d = 9.5; d < 10.6; d += 0.1) {
+          	double beta = 78.1;
+		//double theta = 44;
+		//double d = 10.1;
+		// Load scaffold
           std::string scaffold ="protein and backbone";
 
           InputPDBScaffold input(vergil->domain(), scaffold);
@@ -205,7 +214,7 @@ void Design(Vergil* vergil) {
           vergil->domain()->Clear();
 		      }
 		    }
-		  }
-		}
-	}
+	//	  }
+	//	}
+//	}
 }
