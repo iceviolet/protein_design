@@ -1,5 +1,5 @@
 /*
- * P222.cpp
+ * P222_9.cpp
  *
  *  Created on: Aug 28, 2015
  *      Author: Violet
@@ -123,7 +123,7 @@ void Design(Vergil* vergil) {
 		 // for (double beta = 95.5; beta < 97.6; beta += 0.1) {
 		    for (double theta = 35; theta < 51; ++theta ) {
 		      for (double d = 9.5; d < 10.6; d += 0.1) {
-          	double beta = 78.1;
+          	double beta = 101.9;
 		//double theta = 44;
 		//double d = 10.1;
 		// Load scaffold
