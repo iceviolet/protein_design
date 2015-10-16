@@ -111,7 +111,7 @@ void Design(Vergil* vergil) {
 	unfolded_compute.GenerateUnfoldedFreeEnergies();
 	Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
 
-  std::string outfile_energy = output_fileprefix + "_bundle_a3.17_c3.25_beta78.1_theta35to50_d9.5to10.5.csv";
+  std::string outfile_energy = output_fileprefix + "_bundle_a3.17_c3.25_beta101.9_theta35to50_d7.9to10.5_alpha0to50.csv";
   FILE* outfile = fopen(outfile_energy.c_str(), "w");
   fprintf(outfile, "UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), d(A), Internal_energy(Kcal/mol)\n");
   fclose(outfile);
@@ -120,12 +120,15 @@ void Design(Vergil* vergil) {
 	//	for (double c = 32.8; c < 33.9; c+=0.1) {
   double a = 31.7;
   double c = 32.5;
+  double beta = 101.9;
+  //double theta = 44;
+  //double d = 10.1;
+  //double alpha = beta/2;
 		 // for (double beta = 95.5; beta < 97.6; beta += 0.1) {
-		    for (double theta = 35; theta < 51; ++theta ) {
-		      for (double d = 9.5; d < 10.6; d += 0.1) {
-          	double beta = 101.9;
-		//double theta = 44;
-		//double d = 10.1;
+		    for (double theta = 30; theta < 51; ++theta ) {
+		      for (double d = 7.9; d < 10.6; d += 0.1) {
+		    	  for (double alpha = 0; alpha < 55; alpha += 5) {
+
 		// Load scaffold
           std::string scaffold ="protein and backbone";
 
@@ -159,8 +162,8 @@ void Design(Vergil* vergil) {
           //rotate ASU around y(b) axis by theta degree
           const Matrix m_y = Geometry::Transformation(Vector3(0, 1, 0), theta * DEGREES_TO_RADIANS);
           vergil->domain()->TransformBy(m_y);
-          //translate ASU by d A along the bisect of a and c in the unit cell
-          const Vector3 offset = Vector3(d * cos(beta/2 * DEGREES_TO_RADIANS), 0, d * sin(beta/2 * DEGREES_TO_RADIANS));
+          //translate ASU by d along the vector that is alpha degree away from a in the unit cell
+          const Vector3 offset = Vector3(d * cos(alpha * DEGREES_TO_RADIANS), 0, d * sin(alpha * DEGREES_TO_RADIANS));
           const Matrix m_move = Geometry::Transformation(Vector3(0, 0, 0), 0, offset);
           vergil->domain()->TransformBy(m_move);
 
@@ -203,17 +206,18 @@ void Design(Vergil* vergil) {
           std::string output_file = output_directory + "/C4459_P2_9_bundle_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) + "_theta" + Log->to_str(theta) + "_d" + Log->to_str(d) + "_mp_type_wCap";
           //vergil->StandardOutput(output_file);
 
-          for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
+         /* for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
             it->SetAggregatedTypeProbability();
           }
           vergil->RenameSymmetrySegname(symmetry_related_elements);
           OutputPDB output1(output_file + "_lattice.pdb", vergil->domain());
           output1.WriteLattice(symmetry_related_elements);
-          Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");
+          Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");*/
 
           vergil->domain()->Clear();
 		      }
 		    }
+		  }
 	//	  }
 	//	}
 //	}
