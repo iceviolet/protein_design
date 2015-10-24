@@ -204,7 +204,7 @@ void DesignP4(Vergil* vergil) {
   std::string input_directory = home_dir + "/peptide_design/fullseq_design_approved_by_Jeff";
   std::string output_directory = home_dir + "/peptide_design/P4";
   std::string pdb_filename = input_directory + "/P222_9_X0_X6_X12_X17_NH2cap.pdb";
-  std::string output_fileprefix = output_directory + "/C4459_P4212";
+  std::string output_fileprefix = output_directory + "/C4459_P4";
 
   //Create a local Timer instance
   Timer timer;
@@ -281,6 +281,11 @@ void DesignP4(Vergil* vergil) {
 
          //Trim rotamers that clash with the scaffold
          vergil->TrimDomain(30.0, symmetry_related_elements);
+
+         //skip the case when all confomers are removed due to clashing
+         if (vergil->domain()->NumberConformers() == 0) {
+           continue;
+         }
 
          // Set up energy function
          timer.Stamp();
