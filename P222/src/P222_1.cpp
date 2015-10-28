@@ -231,7 +231,8 @@ void DesignP2(Vergil* vergil, std::vector<double> parameters) {
 				  fclose(outfile);
 
 				  //Output standard files (pdb, psf, seq, csv)
-				  std::string output_file = output_directory + "/C4459_P2_1_bundle_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) + "_theta" + Log->to_str(theta) + "_d" + Log->to_str(d) + "_mp_type_wCap";
+				  std::string output_file = output_directory + "/C4459_P2_1_bundle_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) +
+						  "_theta" + Log->to_str(theta) + "_d" + Log->to_str(d) + "_alpha" + Log->to_str(alpha) + "_mp_type_wCap";
 				  //vergil->StandardOutput(output_file);
 
 				  if (meanfield_energy < -750) {
