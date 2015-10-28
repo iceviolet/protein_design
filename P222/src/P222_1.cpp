@@ -140,11 +140,11 @@ void DesignP2(Vergil* vergil, std::vector<double> parameters) {
 			"_alpha" + Log->to_str(alpha_min) + "to" + Log->to_str(alpha_max) + ".csv";
 	FILE* outfile = fopen(outfile_energy.c_str(), "w");
 	fprintf(outfile,
-			"UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), d(A), Internal_energy(Kcal/mol)\n");
+			"UnitCell_length_a(nm), UnitCell_length_c(nm), beta(deg), theta(deg), d(A), alpha(deg), Internal_energy(Kcal/mol)\n");
 	fclose(outfile);
 
   for (double a = a_min; a < a_max + 0.1; a+=0.1) {
-    for (double c = c_min; c < c_min + 0.1; c+=0.1) {
+    for (double c = c_min; c < c_max + 0.1; c+=0.1) {
       for (double beta = beta_min; beta < beta_max + 0.1; beta += 0.1) {
         for (double theta = theta_min; theta < theta_max + 1; ++theta ) {
           for (double d = d_min; d < d_max + 0.1; d += 0.1) {
@@ -197,12 +197,19 @@ void DesignP2(Vergil* vergil, std::vector<double> parameters) {
 				  vergil->TrimDomain(30.0, symmetry_related_elements);
 
 				  //skip the case when all conformers are removed on any of the sites
+				  bool skip;
 				  for (Domain::SectionIterator jt = vergil->domain()->SectionIterator_Begin(); jt != vergil->domain()->SectionIterator_End(); ++jt) {
 					for (Section::SiteIterator it = jt->SiteIterator_Begin(); it != jt->SiteIterator_End(); ++it) {
 					  if (it->NumberConformers() == 0)
-						  continue;
+						  skip = 1;
+					  	  break;
 					}
+					if (skip)
+						break;
 				  }
+
+				  if(skip)
+					  continue;
 
 				  // Set up energy function
 				  timer.Stamp();
@@ -227,7 +234,7 @@ void DesignP2(Vergil* vergil, std::vector<double> parameters) {
 				  VectorN prob = vergil->ConformerProbabilityVector();
 				  double meanfield_energy = free_energy.internal_energy()->Value(prob);
 				  FILE* outfile = fopen(outfile_energy.c_str(), "a");
-				  fprintf(outfile, "%10.5f, %10.5f, %10.5f, %10.5f, %10.5f, %10.5f\n", a/10, c/10, beta, theta, d, meanfield_energy);
+				  fprintf(outfile, "%10.5f, %10.5f, %10.5f, %10.5f, %10.5f, %10.5f, %10.5f\n", a/10, c/10, beta, theta, d, alpha, meanfield_energy);
 				  fclose(outfile);
 
 				  //Output standard files (pdb, psf, seq, csv)
