@@ -31,7 +31,13 @@ using namespace vergil_ns;
  * @brief design routine
  * @param vergil
  */
-void Design(Vergil* vergil);
+void DesignP2(Vergil* vergil);
+
+/**
+ * @brief design routine
+ * @param vergil
+ */
+void DesignP222(Vergil* vergil);
 
 /**
  * @brief
@@ -56,7 +62,8 @@ int main(int argc, char **argv) {
 	Vergil *vergil = new Vergil();
 
 	// Run the routine
-	Design(vergil);
+	//DesignP2(vergil);
+	DesignP222(vergil);
 
 	// Delete the VERGIL instance and clean up
 	delete vergil;
@@ -67,7 +74,7 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-void Design(Vergil* vergil) {
+void DesignP2(Vergil* vergil) {
 
 	//set design parameters
 	double design_beta = 0.5;
@@ -75,12 +82,12 @@ void Design(Vergil* vergil) {
 	double twobody_energy_cap = 30;
 
 	//file prefix
-	std::string home_dir = "/scratch/03048/huixi";
-	//std::string home_dir = "/Users/Violet/data";
+	//std::string home_dir = "/scratch/03048/huixi";
+	std::string home_dir = "/Users/Violet/data";
 	std::string input_directory =
-			home_dir + "/peptide_design/fullseq_design_approved_by_Jeff";
+			home_dir + "/peptide_design/tetramer_29/fullseq_design_approved_by_Jeff";
 	std::string output_directory =
-			home_dir + "/peptide_design/P2_9";
+			home_dir + "/peptide_design/";
 	std::string pdb_filename = input_directory
 			+ "/P222_9_X0_X6_X12_X17_NH2cap.pdb";
 //	std::string pdb_filename = input_directory
@@ -121,13 +128,13 @@ void Design(Vergil* vergil) {
   double a = 31.7;
   double c = 32.5;
   double beta = 101.9;
-  //double theta = 44;
-  //double d = 10.1;
-  //double alpha = beta/2;
+  double theta = 31;
+  double d = 10.4;
+  double alpha = 43;
 		 // for (double beta = 95.5; beta < 97.6; beta += 0.1) {
-		    for (double theta = 30; theta < 51; ++theta ) {
-		      for (double d = 7.9; d < 10.6; d += 0.1) {
-		    	  for (double alpha = 0; alpha < 55; alpha += 5) {
+		  //  for (double theta = 30; theta < 51; ++theta ) {
+		    //  for (double d = 7.9; d < 10.6; d += 0.1) {
+		    	//  for (double alpha = 0; alpha < 55; alpha += 5) {
 
 		// Load scaffold
           std::string scaffold ="protein and backbone";
@@ -198,7 +205,7 @@ void Design(Vergil* vergil) {
           //Output Energy
           VectorN prob = vergil->ConformerProbabilityVector();
           double meanfield_energy = free_energy.internal_energy()->Value(prob);
-          FILE* outfile = fopen(outfile_energy.c_str(), "a");
+          outfile = fopen(outfile_energy.c_str(), "a");
           fprintf(outfile, "%10.5f, %10.5f, %10.5f, %10.5f, %10.5f, %10.5f\n", a/10, c/10, beta, theta, d, meanfield_energy);
           fclose(outfile);
 
@@ -206,19 +213,139 @@ void Design(Vergil* vergil) {
           std::string output_file = output_directory + "/C4459_P2_9_bundle_nofixcore_a" + Log->to_str(a) + "_c" + Log->to_str(c) + "_beta" + Log->to_str(beta) + "_theta" + Log->to_str(theta) + "_d" + Log->to_str(d) + "_mp_type_wCap";
           //vergil->StandardOutput(output_file);
 
-         /* for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
+         for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
             it->SetAggregatedTypeProbability();
           }
           vergil->RenameSymmetrySegname(symmetry_related_elements);
           OutputPDB output1(output_file + "_lattice.pdb", vergil->domain());
           output1.WriteLattice(symmetry_related_elements);
-          Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");*/
+          Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");
 
           vergil->domain()->Clear();
-		      }
-		    }
-		  }
+		   //   }
+		   // }
+		 // }
 	//	  }
 	//	}
 //	}
 }
+
+void DesignP222(Vergil* vergil) {
+
+  //set design parameters
+  double design_beta = 0.5;
+  double ref_beta = ROOM_TEMPERATURE_BETA;
+  double twobody_energy_cap = 30;
+
+  //file prefix
+  //std::string home_dir = "/scratch/03048/huixi";
+  std::string home_dir = "/Users/Violet/data";
+  std::string input_directory =
+      home_dir + "/peptide_design/tetramer_29/fullseq_design_approved_by_Jeff";
+  std::string output_directory =
+      home_dir + "/peptide_design/";
+  std::string pdb_filename = input_directory
+      + "/C4459a_chainA_fixed_adg_NH2cap_for_vergil.pdb";
+  std::string output_fileprefix = output_directory + "/C4459_P222_9";
+
+
+  //Create a local Timer instance
+  Timer timer;
+
+  //Load force field and design topology
+  vergil->LoadAMBERUnitedAtom();
+  vergil->LoadSavenDesignStandards();
+  unsigned int max_dunbrack_rots = 81;
+  vergil->LoadDunbrackRotamerLibrary(2002, max_dunbrack_rots);
+
+  //Compute and time the reference energy
+  timer.Stamp();
+  Log->print("Computing reference energies....");
+  PotentialUnfoldedFreeEnergy unfolded_compute(
+      PotentialUnfoldedFreeEnergy::AMBER_KONO,
+      vergil->forcefield_parameter_library(), vergil->topology_library(),
+      vergil->conformer_library());
+  unfolded_compute.set_beta(ref_beta);
+  unfolded_compute.AddPotential(vergil->potential("dihedral"));
+  unfolded_compute.AddPotential(vergil->potential("vanderwaals"));
+  unfolded_compute.AddPotential(vergil->potential("electrostatic"));
+  unfolded_compute.GenerateUnfoldedFreeEnergies();
+  Log->print_tag("RUNTIME", "Reference energy calculation: " + timer.ElapsedToString());
+
+  double a = 21.7;
+  double b = 20.0;
+  //double a = 1000;
+  //double b = 1000;
+
+// Load scaffold
+  std::string scaffold ="protein and backbone or site 30";
+
+  InputPDBScaffold input(vergil->domain(), scaffold);
+  input.KeepSitesWithMissingAtoms();
+  input.Read(pdb_filename);
+  Log->print_tag("INPUT", "PDB scaffold -- " + pdb_filename);
+
+  //Type each site in the domain using the original P222_9 sequence
+  std::string typelist[] = { "ASP", "GLY", "ARG", "ILE", "GLU", "GLY", "MET", "ALA", "GLU", "ALA", "ILE", "LYS", "LYS",
+      "MET", "ALA", "TYR", "ASN", "ILE", "ALA", "ASP", "MET", "ALA", "GLY", "ARG", "ILE", "TRP", "GLY", "GLU", "ALA",
+      "NH2" };
+
+  for (Domain::SectionIterator jt = vergil->domain()->SectionIterator_Begin(); jt != vergil->domain()->SectionIterator_End(); ++jt) {
+    size_t i = 0;
+    for (Section::SiteIterator it = jt->SiteIterator_Begin(); it != jt->SiteIterator_End(); ++it) {
+      it->Add(typelist[i]);
+      ++i;
+    }
+  }
+
+  // Build all conformers
+  vergil->BuildDomain();
+  vergil->TrimDomain(30.0);
+
+  //Set up symmetry and build lattice
+  vergil->domain()->set_unit_cell_parameters("P222", a, b, 1000, 90.0, 90.0, 90.0);
+  SymmetryGenerator<Domain> symexp("P222", a, b, 1000, 90.0, 90.0, 90.0);
+  //symexp.BuildLattice(*vergil->domain(), -1, -1, 0, 1, 1, 0);
+  symexp.BuildLatticeWithin(*vergil->domain(), 14);
+  std::vector<Domain>* symmetry_related_elements = symexp.lattice();
+
+  //Trim rotamers that clash with the scaffold
+  vergil->TrimDomain(30.0, symmetry_related_elements);
+
+  // Set up energy function
+  timer.Stamp();
+  Log->print("Setting up energy function...");
+  FunctionMeanFieldEnergyLattice energy(vergil->domain(), symmetry_related_elements);
+  energy.set_pairwise_energy_cap_values(twobody_energy_cap, twobody_energy_cap);
+  energy.AddPotential(vergil->potential("dihedral"));
+  energy.AddPotential(vergil->potential("vanderwaals"));
+  energy.AddPotential(vergil->potential("electrostatic"));
+  energy.ComputeEnergies();
+  Log->print_tag("RUNTIME", "Energy Matrix Fill Time: " + timer.ElapsedToString());
+
+  // Initialize probabilities
+  vergil->domain()->SetUniformConformerProbabilities();
+
+  // Set up the problem and solve the unconstrained problem
+  FunctionFreeEnergyWithReference free_energy(&energy, design_beta, &unfolded_compute);
+  vergil->InitProbabilityProblem(free_energy);
+  vergil->SolveProbabilityProblem();
+
+  //Output standard files (pdb, psf, seq, csv)
+  VectorN prob = vergil->ConformerProbabilityVector();
+  double meanfield_energy = free_energy.internal_energy()->Value(prob);
+  std::string output_file = output_directory + "/C4459_P222_9_bundle_a" + Log->to_str(a) + "_b" + Log->to_str(b) + "_E" + Log->to_str(meanfield_energy);
+  vergil->StandardOutput(output_file);
+
+ for (Domain::SiteIterator it = vergil->domain()->SiteIterator_Begin(); it != vergil->domain()->SiteIterator_End(); ++it) {
+    it->SetAggregatedTypeProbability();
+  }
+  vergil->RenameSymmetrySegname(symmetry_related_elements);
+  OutputPDB output1(output_file + "_lattice.pdb", vergil->domain());
+  output1.WriteLattice(symmetry_related_elements);
+  Log->print("Most Probable PDB -- " + output_file + "_lattice.pdb");
+
+  vergil->domain()->Clear();
+}
+
+
